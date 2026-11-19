@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.qaplayground</groupId>
+        <artifactId>qa-http-playground-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>playground-server</artifactId>
+    <name>playground-server</name>
+    <description>
+        The qa-http-playground HTTP server (Spring Boot), and every test of it, one package per level
+        (docs/testing/TEST-STRATEGY.md section 3):
+          io.qaplayground.server.*      unit tests, next to the code they test   (Surefire, default-test)
+          io.qaplayground.integration   *IT: the Spring app on a random port     (Failsafe)
+          io.qaplayground.api.*         REST Assured API suite                   (Surefire, execution "api")
+          io.qaplayground.e2e.*         Selenium journeys in a real browser      (Surefire, execution "e2e")
+          io.qaplayground.testing.*     technique annotations, endpoint inventory, traceability
+        One level only, e.g.: ./mvnw -pl playground-server test-compile surefire:test@e2e -Dheadless=false
+        Switches: -DskipE2E  -Dbrowser=firefox
+                  -Dplayground.baseUri=http://localhost:8080 (API and E2E against a running server)
+                  -Dtraceability.write=true
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- API level -->
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- E2E level -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.deque.html.axe-core</groupId>
+            <artifactId>selenium</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Apache HttpClient 5 reads HTTP trailers (/sse, /trailers); the JDK HttpClient cannot. -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <properties>
+        <!-- The parent POM skips spring-boot:run everywhere else; this is the module that runs. -->
+        <spring-boot.run.skip>false</spring-boot.run.skip>
+        <!-- API: the raw-socket trailer check is opt-in (see TrailersWireTest). -->
+        <playground.excludedGroups>trailers-wire</playground.excludedGroups>
+        <!-- skipE2E follows -DskipTests unless set explicitly (an unset skipTests reads as false). -->
+        <skipE2E>${skipTests}</skipE2E>
+        <browser>chrome</browser>
+        <headless>true</headless>
+        <!-- Traceability report, last step of verify -->
+        <traceability.output>${project.build.directory}/TRACEABILITY.md</traceability.output>
+    </properties>
+
+    <build>
+        <plugins>
+            <!-- One Surefire execution per test level, each in its own JVM with its own trace.level, so the
+                 traceability report knows which level a test belongs to. They run in this order in `test`. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-test</id>
+                        <configuration>
+                            <includes>
+                                <include>io/qaplayground/server/**/*Test.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>api</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>io/qaplayground/api/**/*Test.java</include>
+                            </includes>
+                            <excludedGroups>${playground.excludedGroups}</excludedGroups>
+                            <argLine>-Dfile.encoding=UTF-8</argLine>
+                            <systemPropertyVariables>
+                                <trace.level>api</trace.level>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>e2e</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>io/qaplayground/e2e/**/*Test.java</include>
+                            </includes>
+                            <skipTests>${skipE2E}</skipTests>
+                            <argLine>-Dfile.encoding=UTF-8</argLine>
+                            <systemPropertyVariables>
+                                <trace.level>e2e</trace.level>
+                                <browser>${browser}</browser>
+                                <headless>${headless}</headless>
+                                <e2e.artifacts>${project.build.directory}/e2e-artifacts</e2e.artifacts>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- *IT = integration tests (Failsafe, the Spring app on a random port). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>io/qaplayground/integration/**/*IT.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
+            <!-- Last in verify: the traceability matrix (route x level, technique x level) from every level's records. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.7.0</version>
+                <executions>
+                    <execution>
+                        <id>traceability-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>io.qaplayground.testing.trace.TraceabilityReport</mainClass>
+                            <classpathScope>test</classpathScope>
+                            <arguments>
+                                <argument>${trace.dir}</argument>
+                                <argument>${traceability.output}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- The runnable fat jar gets the "exec" classifier so the plain jar
+                         can still be used as a dependency by the course modules. -->
+                    <classifier>exec</classifier>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>traceability-write</id>
+            <activation>
+                <property>
+                    <name>traceability.write</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <traceability.output>${maven.multiModuleProjectDirectory}/docs/testing/TRACEABILITY.md</traceability.output>
+            </properties>
+        </profile>
+    </profiles>
+</project>

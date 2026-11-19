@@ -1,0 +1,6 @@
+# PICT model for /drip (docs/testing/TEST-DESIGN.md section 10).
+# drip.csv was generated from it (greedy all-pairs; equivalent to `pict drip.pict`), checked in so the build needs no PICT.
+duration: 0, 200ms, 500ms
+numbytes: 1, 10, 100
+code: 200, 404, 503
+delay: 0, 200ms

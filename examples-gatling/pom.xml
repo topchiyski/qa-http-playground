@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.qaplayground</groupId>
+        <artifactId>qa-http-playground-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>examples-gatling</artifactId>
+    <name>examples-gatling</name>
+    <description>
+        Gatling course (Java DSL): lessons and solutions, run against a RUNNING playground
+        (docs/learning-paths/gatling/). They compile with the normal build but only run when you ask:
+          ./mvnw -pl examples-gatling gatling:test            (lesson 1, the default)
+          ./mvnw -pl examples-gatling gatling:test -Dgatling.simulationClass=io.qaplayground.course.beginner.L02_ChecksSimulation
+        Target another server with -DbaseUrl=http://host:8080
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.gatling.highcharts</groupId>
+            <artifactId>gatling-charts-highcharts</artifactId>
+            <version>${gatling.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.gatling</groupId>
+                <artifactId>gatling-maven-plugin</artifactId>
+                <version>${gatling-maven-plugin.version}</version>
+                <configuration>
+                    <!-- Pass the target to the simulation JVM. -->
+                    <jvmArgs>
+                        <jvmArg>-DbaseUrl=${baseUrl}</jvmArg>
+                        <jvmArg>-Dusers=${users}</jvmArg>
+                        <jvmArg>-Dminutes=${minutes}</jvmArg>
+                        <jvmArg>-Dmodel=${model}</jvmArg>
+                    </jvmArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <properties>
+        <baseUrl>http://localhost:8080</baseUrl>
+        <users>0</users>
+        <minutes>0</minutes>
+        <!-- Lesson 11: open or closed workload model -->
+        <model>open</model>
+        <!-- Default simulation; override with -Dgatling.simulationClass=... -->
+        <gatling.simulationClass>io.qaplayground.course.beginner.L01_FirstSimulation</gatling.simulationClass>
+    </properties>
+</project>

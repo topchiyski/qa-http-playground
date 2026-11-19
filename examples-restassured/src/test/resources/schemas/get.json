@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Response of GET /get",
+  "type": "object",
+  "required": ["args", "headers", "origin", "url"],
+  "properties": {
+    "args": {
+      "type": "object",
+      "additionalProperties": {"type": "array", "items": {"type": "string"}}
+    },
+    "headers": {
+      "type": "object",
+      "additionalProperties": {"type": "array", "items": {"type": "string"}}
+    },
+    "origin": {"type": "string"},
+    "url": {"type": "string"}
+  }
+}

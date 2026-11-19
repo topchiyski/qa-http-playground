@@ -1,0 +1,6 @@
+# Reviewed accessibility exceptions: page, axe rule id, reason.
+# Each entry needs a reason and should shrink over time. New violations fail the build.
+/forms/post            document-title  go-httpbin's form template, shipped byte-identical (COMPATIBILITY.md); a fix would be a deliberate deviation
+/forms/post            html-has-lang   same template as above
+/swagger-ui/index.html label           third-party Swagger UI (an unlabelled input in its own markup); not ours to change
+/swagger-ui/index.html color-contrast  third-party Swagger UI: its green "Explore" button is 3.17:1 (reported by axe in Firefox)

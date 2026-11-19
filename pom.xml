@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.2</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>io.qaplayground</groupId>
+    <artifactId>qa-http-playground-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>qa-http-playground</name>
+    <description>A standalone, self-hosted HTTP API playground (httpbin-compatible) for QA engineers and SDETs.</description>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>https://opensource.org/license/mit</url>
+        </license>
+    </licenses>
+
+    <modules>
+        <!-- The server and all of its tests (unit, integration, API, E2E). -->
+        <module>playground-server</module>
+        <!-- Learning material: exercise solutions and load-test simulations. -->
+        <module>examples-restassured</module>
+        <module>examples-gatling</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <springdoc.version>3.2.0</springdoc.version>
+        <rest-assured.version>6.3.0</rest-assured.version>
+        <gatling.version>3.16.0</gatling.version>
+        <gatling-maven-plugin.version>4.21.12</gatling-maven-plugin.version>
+        <!-- `./mvnw spring-boot:run` from the repo root starts only the playground:
+             every module skips `run` except playground-server, which sets this to false. -->
+        <spring-boot.run.skip>true</spring-boot.run.skip>
+
+        <!-- Test tooling -->
+        <archunit.version>1.5.1</archunit.version>
+        <axe-core-selenium.version>4.14.0</axe-core-selenium.version>
+
+        <!-- Traceability: which level a test run belongs to (docs/testing/TEST-STRATEGY.md#3-test-levels).
+             playground-server's Surefire executions override it; Failsafe always records "integration". -->
+        <trace.level>unit</trace.level>
+        <trace.dir>${project.build.directory}/traceability</trace.dir>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.qaplayground</groupId>
+                <artifactId>playground-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit</artifactId>
+                <version>${archunit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.deque.html.axe-core</groupId>
+                <artifactId>selenium</artifactId>
+                <version>${axe-core-selenium.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.rest-assured</groupId>
+                <artifactId>rest-assured</artifactId>
+                <version>${rest-assured.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.rest-assured</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${rest-assured.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- Every test JVM records which tests ran, with their technique tags and the paths they hit
+                     (io.qaplayground.testing.trace.TraceExtension, auto-registered). -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <systemPropertyVariables>
+                            <trace.level>${trace.level}</trace.level>
+                            <trace.dir>${trace.dir}</trace.dir>
+                            <trace.module>${project.artifactId}</trace.module>
+                        </systemPropertyVariables>
+                        <properties>
+                            <configurationParameters>junit.jupiter.extensions.autodetection.enabled=true</configurationParameters>
+                        </properties>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <configuration>
+                        <systemPropertyVariables>
+                            <trace.level>integration</trace.level>
+                            <trace.dir>${trace.dir}</trace.dir>
+                            <trace.module>${project.artifactId}</trace.module>
+                        </systemPropertyVariables>
+                        <properties>
+                            <configurationParameters>junit.jupiter.extensions.autodetection.enabled=true</configurationParameters>
+                        </properties>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

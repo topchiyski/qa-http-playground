@@ -1,0 +1,11 @@
+# Shell scripts must keep LF endings or ./mvnw breaks on Linux and macOS.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.jpeg binary
+*.jpg binary
+*.webp binary
+*.avif binary
+*.jar binary

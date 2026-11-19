@@ -1,0 +1,92 @@
+# qa-http-playground configuration.
+# Every value can be overridden with an environment variable, e.g. PLAYGROUND_MAX_DURATION=30s
+# or SERVER_PORT=9090. Defaults match the reference implementation (go-httpbin).
+
+playground:
+  max-body-size: 1MB          # largest request body accepted / response body generated
+  max-duration: 10s           # cap for /delay, /drip, /sse, /jsonl, /range?duration=, websocket sessions
+  max-stream-lines: 100       # /stream/{n} is clamped to this
+  max-links: 256              # /links/{n} upper bound
+  max-redirects: 0            # 0 = unlimited (reference behaviour)
+  allowed-redirect-domains: [] # empty = /redirect-to may target any absolute URL
+  exclude-headers: ""         # e.g. "x-fly-*,via" hides these from echo endpoints
+  unsafe-allow-dangerous-responses: false
+  hostname: go-httpbin        # value reported by /hostname
+  use-real-hostname: false
+  env-prefix: HTTPBIN_ENV_    # only these environment variables appear in /env
+  full-version: false
+  drip:
+    duration: 2s
+    delay: 2s
+    num-bytes: 10
+  sse:
+    count: 10
+    duration: 5s
+    delay: 0s
+  jsonl:
+    count: 10
+    duration: 0s
+    delay: 0s
+
+server:
+  # 0.0.0.0 so other machines on a lab network can reach it. LOCAL / LAB NETWORKS ONLY - never expose to the internet.
+  address: 0.0.0.0
+  port: 8080
+  # Compression must stay off: /gzip, /deflate and /range must send exact bytes.
+  compression:
+    enabled: false
+  tomcat:
+    # Generous headroom; with virtual threads the worker pool is not the bottleneck.
+    max-connections: 10000
+    accept-count: 1000
+    max-swallow-size: 2MB
+    # Go accepts these unencoded in URLs (e.g. /cookies/set?attr[SameSite]=Strict); Tomcat
+    # rejects them with 400 unless relaxed. Keep the playground as forgiving as the reference.
+    relaxed-query-chars: "[,],|,{,},^,\\,`,\",<,>"
+    relaxed-path-chars: "[,],|,{,},^,\\,`,\",<,>"
+
+spring:
+  application:
+    name: qa-http-playground
+  threads:
+    virtual:
+      enabled: true            # /delay, /drip and streaming park cheap virtual threads
+  mvc:
+    async:
+      request-timeout: 30s     # must exceed playground.max-duration
+    problemdetails:
+      enabled: false
+    formcontent:
+      filter:
+        enabled: false         # it consumed PUT/PATCH/DELETE form bodies before the endpoints saw them (ES-02)
+  web:
+    resources:
+      add-mappings: false      # no static file serving: unknown paths are plain 404s, like Go
+  servlet:
+    multipart:
+      enabled: false           # bodies are parsed by the endpoints themselves, like go-httpbin
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    try-it-out-enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  server:
+    port: 8081                 # Actuator lives on its own port so it never collides with httpbin paths
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: qa-http-playground
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 50ms,100ms,250ms,500ms,1s,2s,5s,10s

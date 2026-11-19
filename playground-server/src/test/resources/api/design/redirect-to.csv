@@ -1,0 +1,16 @@
+rule,url,status_code,expected_status,expected_location,expected_detail
+# Decision table for /redirect-to without an allow-list (docs/testing/TEST-DESIGN.md section 3.1).
+# Conditions are evaluated in this order: url present, url parses, target allowed, status_code valid.
+# The order matters: R4 shows that a forbidden target wins over an invalid status code.
+# Allow-list rules (R7, R8) need configuration and are tested in RedirectAllowListIT.
+R1 url missing,,,400,,missing required query parameter: url
+R2 url unparseable,http://foo%%bar,,400,,"invalid url: parse ""http://foo%%bar"": invalid URL escape ""%%b"""
+R3 not allowed (relative),foo,,403,,
+R3 not allowed (scheme-relative without path),//evil.com,,403,,
+R4 not allowed + invalid status,foo,418,403,,
+R5 allowed (absolute) default status,http://example.com/a,,302,http://example.com/a,
+R5 allowed (root-relative) default status,/get,,302,/get,
+R6 allowed + valid status,/get,307,307,/get,
+R6 allowed + valid status,https://example.com,301,301,https://example.com,
+R9 allowed + status outside 300-399,/get,200,400,,"invalid status code: 200 not in range [300, 399]"
+R9 allowed + non-numeric status,/get,x,400,,"invalid status code: ""x"": strconv.Atoi: parsing ""x"": invalid syntax"
