@@ -52,7 +52,7 @@ class ClockWiringIT extends ServerIT {
     @Test
     @DisplayName("/sse stamps each event with the clock's time")
     void sseTimestampsComeFromTheClock() {
-        assertThat(get("/sse?count=1&duration=1ms").body())
+        assertThat(getBodyAllowingTrailers("/sse?count=1&duration=1ms"))
                 .contains("\"timestamp\":" + NOW.toEpochMilli());
     }
 }
